@@ -51,7 +51,8 @@ export function TonPaymentsProvider({
         try {
             await tonConnect.openModal();
             const wallets = await tonConnect.getWallets();
-            setIsConnected(!!wallets.length);
+            console.log('wallets', wallets);
+            setIsConnected(wallets.length > 0);
         } catch (error) {
             console.error('Wallet connection failed:', error);
             throw error;
