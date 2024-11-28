@@ -5,7 +5,7 @@ A React library for handling TON blockchain payments with ease.
 ## Installation
 
 ```bash
-npm install ton-payments
+npm install https://github.com/Futo-Payments/futo-payments-sdk.git
 ```
 
 ## Setup
