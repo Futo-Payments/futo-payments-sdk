@@ -24,8 +24,6 @@ const API_URL =
     (typeof process !== 'undefined' && process.env.VITE_TON_PAYMENTS_API_URL) ||
     (typeof window !== 'undefined' ? (window as any)?.__VITE_TON_PAYMENTS_API_URL : undefined);
 
-console.log(API_URL);
-
 export interface TonPaymentsProviderProps {
     apiKey: string;
     children: ReactNode;
