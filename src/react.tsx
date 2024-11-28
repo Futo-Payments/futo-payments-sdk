@@ -21,7 +21,8 @@ export const TonPaymentsContext = createContext<TonPaymentsContextType | undefin
 const API_URL =
     process.env.NEXT_PUBLIC_TON_PAYMENTS_API_URL ||
     process.env.REACT_APP_TON_PAYMENTS_API_URL ||
-    import.meta.env.VITE_TON_PAYMENTS_API_URL;
+    (typeof process !== 'undefined' && process.env.VITE_TON_PAYMENTS_API_URL) ||
+    (typeof window !== 'undefined' ? (window as any)?.__VITE_TON_PAYMENTS_API_URL : undefined);
 
 export interface TonPaymentsProviderProps {
     apiKey: string;
