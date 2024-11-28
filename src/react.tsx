@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useState } from 'react';
+import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { TonConnectUI, TonConnectUiOptions, UIWallet } from '@tonconnect/ui';
 import { toNano } from 'ton';
@@ -42,12 +42,22 @@ export function TonPaymentsProvider({
     apiKey,
     connectorParams
 }: TonPaymentsProviderProps) {
-    const [tonConnect] = useState(() => new TonConnectUI({
-        ...connectorParams,
-        manifestUrl: connectorParams?.manifestUrl
-    }));
-    console.log(connectorParams);
+    const [tonConnect, setTonConnect] = useState<TonConnectUI | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+
+    useEffect(() => {
+        const connector = new TonConnectUI({
+            ...connectorParams,
+            manifestUrl: connectorParams?.manifestUrl
+        });
+        setTonConnect(connector);
+
+        const checkConnection = async () => {
+            const isConnected = await connector.getWallets();
+            setIsConnected(!!isConnected.length);
+        };
+        checkConnection();
+    }, [connectorParams]);
 
     const initiatePayment = useCallback(async (amount: BigNumberish) => {
         try {
@@ -77,6 +87,10 @@ export function TonPaymentsProvider({
     }, [apiKey]);
 
     const connectWallet = useCallback(async () => {
+        if (!tonConnect) {
+            throw new Error('TonConnect not initialized');
+        }
+
         try {
             await tonConnect.connectWallet();
             setIsConnected(true);
@@ -91,13 +105,17 @@ export function TonPaymentsProvider({
         amount: BigNumberish;
         message?: string;
     }) => {
+        if (!tonConnect) {
+            throw new Error('TonConnect not initialized');
+        }
+
         if (!isConnected) {
             throw new Error('Wallet not connected');
         }
 
         try {
             const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
+                validUntil: Math.floor(Date.now() / 1000) + 600,
                 messages: [
                     {
                         address: to,
@@ -118,8 +136,10 @@ export function TonPaymentsProvider({
     }, [tonConnect, isConnected]);
 
     const disconnect = useCallback(() => {
-        tonConnect.disconnect();
-        setIsConnected(false);
+        if (tonConnect) {
+            tonConnect.disconnect();
+            setIsConnected(false);
+        }
     }, [tonConnect]);
 
     return (
