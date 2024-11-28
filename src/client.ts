@@ -27,7 +27,7 @@ export class PaymentClient {
             throw new Error('Merchant address is required');
         }
 
-        const response = await this.api.post<PaymentResponse>('/payments', {
+        const response = await this.api.post<PaymentResponse>('v1/create_payment', {
             ...request,
             merchantAddress: merchantAddress.toString()
         });
@@ -39,7 +39,7 @@ export class PaymentClient {
      * Get payment status by ID
      */
     async getPayment(paymentId: string): Promise<PaymentResponse> {
-        const response = await this.api.post<PaymentResponse>(`/v1/check_payment/${paymentId}`);
+        const response = await this.api.get<PaymentResponse>(`v1/check_payment/${paymentId}`);
         return response.data;
     }
 

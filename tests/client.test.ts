@@ -9,7 +9,7 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('PaymentClient', () => {
     const mockConfig = {
-        apiEndpoint: 'https://futo.io',
+        apiEndpoint: 'https://futo.io/api/',
         merchantAddress: Address.parse('0QAvGnXBkPCn8z9lrUfaYA4z8v7etTOihjGJQF4qt7c6Md7y')
     };
 
@@ -42,7 +42,7 @@ describe('PaymentClient', () => {
             });
 
             expect(payment).toEqual(mockResponse.data);
-            expect(mockedAxios.post).toHaveBeenCalledWith('/payments', {
+            expect(mockedAxios.post).toHaveBeenCalledWith('v1/create_payment', {
                 amount: '1.5',
                 merchantAddress: mockConfig.merchantAddress.toString()
             });
@@ -79,7 +79,7 @@ describe('PaymentClient', () => {
             const payment = await client.getPayment('123');
 
             expect(payment).toEqual(mockResponse.data);
-            expect(mockedAxios.get).toHaveBeenCalledWith('/payments/123');
+            expect(mockedAxios.get).toHaveBeenCalledWith('v1/check_payment/123');
         });
     });
 }); 

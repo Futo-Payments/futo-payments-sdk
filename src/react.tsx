@@ -61,7 +61,7 @@ export function TonPaymentsProvider({
 
     const initiatePayment = useCallback(async (amount: BigNumberish) => {
         try {
-            const response = await fetch(`${API_URL}/api/v1/create_payment`, {
+            const response = await fetch(`${API_URL}v1/create_payment`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

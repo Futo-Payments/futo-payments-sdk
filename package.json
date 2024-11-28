@@ -55,6 +55,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/futo-payments-client"
+    "url": "https://github.com/Futo-Payments/futo-payments-sdk"
   }
 }
