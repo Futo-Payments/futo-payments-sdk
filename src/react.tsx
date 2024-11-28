@@ -10,7 +10,7 @@ export interface TonPaymentsContextType {
     sendTransaction: (params: {
         to: string;
         amount: BigNumberish;
-        message?: string;
+        message: string;
     }) => Promise<{ txHash: string }>;
     isConnected: boolean;
     disconnect: () => void;
@@ -97,7 +97,7 @@ export function TonPaymentsProvider({
     const sendTransaction = useCallback(async ({ to, amount, message }: {
         to: string;
         amount: BigNumberish;
-        message?: string;
+        message: string;
     }) => {
         try {
             if (!tonConnect) {
@@ -113,8 +113,8 @@ export function TonPaymentsProvider({
                 messages: [
                     {
                         address: to,
-                        amount: toNano(amount.toString()).toString(),
-                        payload: message || '',
+                        amount: toNano(amount).toString(),
+                        payload: message!!,
                     },
                 ],
             };
