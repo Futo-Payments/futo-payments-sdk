@@ -5,10 +5,13 @@ import type { Theme, UIWallet } from '@tonconnect/ui';
 function PaymentDemo() {
     const [amount, setAmount] = useState('1.0');
     const [recipientAddress, setRecipientAddress] = useState('');
-    const { connectWallet, sendTransaction, isConnected, disconnect } = useTonPayments();
+    const { connectWallet, sendTransaction, isConnected } = useTonPayments();
 
     const handleSendPayment = async () => {
         try {
+            if (!isConnected) {
+                await connectWallet();
+            }
             await sendTransaction({
                 to: recipientAddress,
                 amount: parseFloat(amount),
@@ -24,14 +27,6 @@ function PaymentDemo() {
     return (
         <div className="payment-demo">
             <h2>TON Payments Demo</h2>
-
-            <div className="wallet-connection">
-                {!isConnected ? (
-                    <button onClick={connectWallet}>Connect Wallet</button>
-                ) : (
-                    <button onClick={disconnect}>Disconnect Wallet</button>
-                )}
-            </div>
 
             <div className="payment-form">
                 <input
@@ -62,7 +57,10 @@ function PaymentDemo() {
 export default function App() {
     return (
         <TonPaymentsProvider
-            apiKey={import.meta.env.VITE_TON_PAYMENTS_API_KEY}
+            config={{
+                apiKey: import.meta.env.VITE_TON_PAYMENTS_API_KEY,
+                apiURL: import.meta.env.VITE_TON_PAYMENTS_API_URL
+            }}
             connectorParams={{
                 manifestUrl: 'http://localhost:3000/tonconnect-manifest.json',
                 uiPreferences: { theme: 'SYSTEM' as Theme },
