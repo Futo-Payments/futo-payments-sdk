@@ -39,7 +39,7 @@ export class PaymentClient {
      * Get payment status by ID
      */
     async getPayment(paymentId: string): Promise<PaymentResponse> {
-        const response = await this.api.get<PaymentResponse>(`/payments/${paymentId}`);
+        const response = await this.api.post<PaymentResponse>(`/v1/check_payment/${paymentId}`);
         return response.data;
     }
 

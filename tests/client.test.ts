@@ -9,8 +9,8 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('PaymentClient', () => {
     const mockConfig = {
-        apiEndpoint: 'https://api.example.com',
-        merchantAddress: Address.parse('EQD4FPq-PRDysCQR0UYgwNq5CJePPpxX2c2O6-NSg_none')
+        apiEndpoint: 'https://futo.io',
+        merchantAddress: Address.parse('0QAvGnXBkPCn8z9lrUfaYA4z8v7etTOihjGJQF4qt7c6Md7y')
     };
 
     beforeEach(() => {
