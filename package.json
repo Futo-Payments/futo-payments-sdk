@@ -21,6 +21,7 @@
   "dependencies": {
     "@tonconnect/ui": "^2.0.9",
     "axios": "^1.7.8",
+    "ethers": "^6.13.4",
     "ton": "^13.9.0"
   },
   "devDependencies": {

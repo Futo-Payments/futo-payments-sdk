@@ -2,13 +2,14 @@ import React, { createContext, useContext, useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
 import { TonConnectUI, TonConnectUiOptions, UIWallet } from '@tonconnect/ui';
 import { toNano } from 'ton';
+import { BigNumberish } from 'ethers';
 
 export interface TonPaymentsContextType {
-    initiatePayment: (amount: number) => Promise<{ payment_id: string }>;
+    initiatePayment: (amount: BigNumberish) => Promise<{ payment_id: string }>;
     connectWallet: () => Promise<void>;
     sendTransaction: (params: {
         to: string;
-        amount: number;
+        amount: BigNumberish;
         message?: string;
     }) => Promise<{ txHash: string }>;
     isConnected: boolean;
@@ -44,7 +45,7 @@ export function TonPaymentsProvider({
     console.log(connectorParams);
     const [isConnected, setIsConnected] = useState(false);
 
-    const initiatePayment = useCallback(async (amount: number) => {
+    const initiatePayment = useCallback(async (amount: BigNumberish) => {
         try {
             const response = await fetch(`${API_URL}/api/v1/create_payment`, {
                 method: 'POST',
@@ -83,7 +84,7 @@ export function TonPaymentsProvider({
 
     const sendTransaction = useCallback(async ({ to, amount, message }: {
         to: string;
-        amount: number;
+        amount: BigNumberish;
         message?: string;
     }) => {
         if (!isConnected) {
