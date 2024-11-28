@@ -44,16 +44,116 @@ export function TonPaymentsProvider({
     const [isInitialized, setIsInitialized] = useState(false);
     const [initError, setInitError] = useState<string | null>(null);
 
+    const connectWallet = useCallback(async () => {
+        if (!tonConnect) {
+            throw new Error('TonConnect not initialized');
+        }
+
+        try {
+            await tonConnect.connectWallet();
+            setIsConnected(true);
+        } catch (error) {
+            console.error('Wallet connection failed:', error);
+            throw error;
+        }
+    }, [tonConnect]);
+
+    const initiatePayment = useCallback(async (amount: BigNumberish) => {
+        try {
+            if (!tonConnect) {
+                throw new Error('TonConnect not initialized');
+            }
+
+            if (!isConnected) {
+                await connectWallet();
+            }
+
+            const response = await fetch(`${config.apiURL}v1/create_payment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${config.apiKey}`
+                },
+                body: JSON.stringify({
+                    amount: amount
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to initiate payment');
+            }
+
+            const data = await response.json();
+            return {
+                payment_id: data.payment_id
+            };
+        } catch (error) {
+            console.error('Payment initiation failed:', error);
+            throw error;
+        }
+    }, [config, tonConnect, isConnected, connectWallet]);
+
+    const sendTransaction = useCallback(async ({ to, amount, message }: {
+        to: string;
+        amount: BigNumberish;
+        message?: string;
+    }) => {
+        try {
+            if (!tonConnect) {
+                throw new Error('TonConnect not initialized');
+            }
+
+            if (!isConnected) {
+                await connectWallet();
+            }
+
+            const transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 600,
+                messages: [
+                    {
+                        address: to,
+                        amount: toNano(amount.toString()).toString(),
+                        payload: message || '',
+                    },
+                ],
+            };
+
+            const result = await tonConnect.sendTransaction(transaction);
+            return {
+                txHash: result.boc
+            };
+        } catch (error) {
+            console.error('Transaction failed:', error);
+            throw error;
+        }
+    }, [tonConnect, isConnected, connectWallet]);
+
+    const disconnect = useCallback(() => {
+        if (tonConnect) {
+            tonConnect.disconnect();
+            setIsConnected(false);
+        }
+    }, [tonConnect]);
+
     useEffect(() => {
         let isMounted = true;
         let instance: TonConnectUI | null = null;
 
         const initTonConnect = async () => {
             try {
-                instance = new TonConnectUI({
-                    ...connectorParams,
-                    manifestUrl: connectorParams?.manifestUrl
-                });
+                if ((window as any).__tonConnectUI) {
+                    instance = (window as any).__tonConnectUI;
+                } else {
+                    instance = new TonConnectUI({
+                        ...connectorParams,
+                        manifestUrl: connectorParams?.manifestUrl
+                    });
+                    (window as any).__tonConnectUI = instance;
+                }
+
+                if (!instance) {
+                    throw new Error('Failed to initialize TonConnect instance');
+                }
 
                 await instance.connectionRestored;
 
@@ -78,9 +178,6 @@ export function TonPaymentsProvider({
         return () => {
             isMounted = false;
             if (instance) {
-                if (instance.connected) {
-                    instance.disconnect().catch(console.error);
-                }
                 setTonConnect(null);
                 setIsConnected(false);
             }
@@ -88,95 +185,32 @@ export function TonPaymentsProvider({
     }, [connectorParams]);
 
     if (!isInitialized && !initError) {
-        return <div>Initializing TON Connect...</div>;
+        return (
+            <TonPaymentsContext.Provider value={{
+                initiatePayment,
+                connectWallet,
+                sendTransaction,
+                isConnected,
+                disconnect
+            }}>
+                <div>Initializing TON Connect...</div>
+            </TonPaymentsContext.Provider>
+        );
     }
 
     if (initError) {
-        return <div>Failed to initialize TON Connect: {initError}</div>;
+        return (
+            <TonPaymentsContext.Provider value={{
+                initiatePayment,
+                connectWallet,
+                sendTransaction,
+                isConnected,
+                disconnect
+            }}>
+                <div>Failed to initialize TON Connect: {initError}</div>
+            </TonPaymentsContext.Provider>
+        );
     }
-
-    const initiatePayment = useCallback(async (amount: BigNumberish) => {
-        try {
-            const response = await fetch(`${config.apiURL}v1/create_payment`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${config.apiKey}`
-                },
-                body: JSON.stringify({
-                    amount: amount
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to initiate payment');
-            }
-
-            const data = await response.json();
-            return {
-                payment_id: data.payment_id
-            };
-        } catch (error) {
-            console.error('Payment initiation failed:', error);
-            throw error;
-        }
-    }, [config]);
-
-    const connectWallet = useCallback(async () => {
-        if (!tonConnect) {
-            throw new Error('TonConnect not initialized');
-        }
-
-        try {
-            await tonConnect.connectWallet();
-            setIsConnected(true);
-        } catch (error) {
-            console.error('Wallet connection failed:', error);
-            throw error;
-        }
-    }, [tonConnect]);
-
-    const sendTransaction = useCallback(async ({ to, amount, message }: {
-        to: string;
-        amount: BigNumberish;
-        message?: string;
-    }) => {
-        if (!tonConnect) {
-            throw new Error('TonConnect not initialized');
-        }
-
-        if (!isConnected) {
-            throw new Error('Wallet not connected');
-        }
-
-        try {
-            const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 600,
-                messages: [
-                    {
-                        address: to,
-                        amount: toNano(amount.toString()).toString(),
-                        payload: message || '',
-                    },
-                ],
-            };
-
-            const result = await tonConnect.sendTransaction(transaction);
-            return {
-                txHash: result.boc
-            };
-        } catch (error) {
-            console.error('Transaction failed:', error);
-            throw error;
-        }
-    }, [tonConnect, isConnected]);
-
-    const disconnect = useCallback(() => {
-        if (tonConnect) {
-            tonConnect.disconnect();
-            setIsConnected(false);
-        }
-    }, [tonConnect]);
 
     return (
         <TonPaymentsContext.Provider value={{

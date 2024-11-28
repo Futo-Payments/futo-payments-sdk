@@ -5,13 +5,10 @@ import type { Theme, UIWallet } from '@tonconnect/ui';
 function PaymentDemo() {
     const [amount, setAmount] = useState('1.0');
     const [recipientAddress, setRecipientAddress] = useState('');
-    const { connectWallet, sendTransaction, isConnected } = useTonPayments();
+    const { sendTransaction, isConnected, connectWallet } = useTonPayments();
 
     const handleSendPayment = async () => {
         try {
-            if (!isConnected) {
-                await connectWallet();
-            }
             await sendTransaction({
                 to: recipientAddress,
                 amount: parseFloat(amount),
@@ -19,8 +16,28 @@ function PaymentDemo() {
             });
             alert('Payment sent successfully!');
         } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            alert(`Payment failed: ${errorMessage}`);
+            if (error instanceof Error) {
+                if (error.message.includes('User rejected the transaction')) {
+                    alert('Transaction was cancelled by user');
+                } else if (error.message.includes('Connect wallet')) {
+                    try {
+                        await connectWallet();
+                        // Retry the transaction after connecting
+                        await sendTransaction({
+                            to: recipientAddress,
+                            amount: parseFloat(amount),
+                            message: 'Test payment'
+                        });
+                        alert('Payment sent successfully!');
+                    } catch (retryError) {
+                        alert(`Payment failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`);
+                    }
+                } else {
+                    alert(`Payment failed: ${error.message}`);
+                }
+            } else {
+                alert('Payment failed: Unknown error occurred');
+            }
         }
     };
 
@@ -45,9 +62,9 @@ function PaymentDemo() {
                 />
                 <button
                     onClick={handleSendPayment}
-                    disabled={!isConnected || !recipientAddress}
+                    disabled={!recipientAddress}
                 >
-                    Send Payment
+                    {isConnected ? 'Send Payment' : 'Connect Wallet & Send'}
                 </button>
             </div>
         </div>
