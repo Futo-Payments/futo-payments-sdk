@@ -1,84 +1,168 @@
-# Futo Payments Client
+# TON Payments
 
-A TypeScript client library for integrating with Futo Payments service.
+A React library for handling TON blockchain payments with ease.
 
 ## Installation
 
 ```bash
-npm install futo-payments-client
+npm install ton-payments
+```
+
+## Setup
+
+### 1. Add TonConnect Manifest
+
+Create a `public/tonconnect-manifest.json` file in your project:
+
+```json
+{
+  "url": "https://your-app-url.com",
+  "name": "Your App Name",
+  "iconUrl": "https://your-app-url.com/icon.png"
+}
+```
+
+⚠️ **Important**: The TonConnect manifest is required for wallet connections to work. Make sure it's accessible via your app's public URL.
+
+### 2. Environment Variables
+
+Create a `.env` file:
+
+```env
+VITE_TON_PAYMENTS_API_KEY=your_api_key_here
 ```
 
 ## Usage
 
-```typescript
-import { PaymentClient, Address } from 'futo-payments-client';
+### Provider Setup
 
-// Initialize the client
-const client = new PaymentClient({
-  apiEndpoint: 'https://api.payments.example.com',
-  merchantAddress: Address.parse('EQD4FPq-PRDysCQR0UYgwNq5CJePPpxX2c2O6-NSg_none')
-});
+Wrap your application with `TonPaymentsProvider`:
 
-// Create a payment request
-const payment = await client.createPayment({
-  amount: '1.5', // Amount in TON
-  comment: 'Payment for service'
-});
+```tsx
+import { TonPaymentsProvider } from 'ton-payments';
 
-// Get payment status
-const status = await client.getPayment(payment.paymentId);
+function App() {
+  return (
+    <TonPaymentsProvider
+      apiKey={import.meta.env.VITE_TON_PAYMENTS_API_KEY}
+      connectorParams={{
+        manifestUrl: 'https://your-app-url.com/tonconnect-manifest.json',
+        uiPreferences: { theme: 'SYSTEM' },
+        walletsListConfiguration: {
+          includeWallets: ['tonkeeper', 'tonhub']
+        }
+      }}
+    >
+      <YourApp />
+    </TonPaymentsProvider>
+  );
+}
+```
 
-// Wait for payment completion
-const result = await client.waitForPayment(payment.paymentId);
+### Payment Component Example
+
+Here's a complete example of a payment component:
+
+```tsx
+import { useState } from 'react';
+import { useTonPayments } from 'ton-payments';
+
+function PaymentComponent() {
+  const [amount, setAmount] = useState('1.0');
+  const [recipientAddress, setRecipientAddress] = useState('');
+  const { connectWallet, sendTransaction, isConnected, disconnect } = useTonPayments();
+
+  const handleSendPayment = async () => {
+    try {
+      await sendTransaction({
+        to: recipientAddress,
+        amount: parseFloat(amount),
+        message: 'Test payment'
+      });
+      alert('Payment sent successfully!');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Payment failed: ${errorMessage}`);
+    }
+  };
+
+  return (
+    <div>
+      <h2>TON Payments Demo</h2>
+
+      {/* Wallet Connection */}
+      <div>
+        {!isConnected ? (
+          <button onClick={connectWallet}>Connect Wallet</button>
+        ) : (
+          <button onClick={disconnect}>Disconnect Wallet</button>
+        )}
+      </div>
+
+      {/* Payment Form */}
+      <div>
+        <input
+          type="text"
+          value={recipientAddress}
+          onChange={(e) => setRecipientAddress(e.target.value)}
+          placeholder="Recipient Address"
+        />
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="Amount in TON"
+          step="0.1"
+          min="0"
+        />
+        <button
+          onClick={handleSendPayment}
+          disabled={!isConnected || !recipientAddress}
+        >
+          Send Payment
+        </button>
+      </div>
+    </div>
+  );
+}
 ```
 
 ## API Reference
 
-### PaymentClient
-
-#### Constructor
+### TonPaymentsProvider Props
 
 ```typescript
-constructor(config: PaymentConfig)
+interface TonPaymentsProviderProps {
+  apiKey: string;
+  connectorParams: {
+    manifestUrl: string;
+    uiPreferences?: {
+      theme: 'LIGHT' | 'DARK' | 'SYSTEM';
+    };
+    walletsListConfiguration?: {
+      includeWallets?: string[];
+    };
+  };
+  children: React.ReactNode;
+}
 ```
 
-Configuration options:
-- `apiEndpoint`: API endpoint for the payment service
-- `merchantAddress`: (optional) Default merchant address
-- `timeout`: (optional) API request timeout in milliseconds
+### useTonPayments Hook
 
-#### Methods
+The `useTonPayments` hook provides the following methods:
 
-##### createPayment
+- `connectWallet(): Promise<void>` - Initiates wallet connection
+- `disconnect(): void` - Disconnects the current wallet
+- `sendTransaction(params: TransactionParams): Promise<void>` - Sends a TON transaction
+- `isConnected: boolean` - Current wallet connection status
 
 ```typescript
-createPayment(request: PaymentRequest): Promise<PaymentResponse>
+interface TransactionParams {
+  to: string;
+  amount: number;
+  message?: string;
+}
 ```
-
-Create a new payment request.
-
-Parameters:
-- `amount`: Amount in TON
-- `merchantAddress`: (optional) Merchant's TON address
-- `comment`: (optional) Payment comment
-- `callbackUrl`: (optional) Callback URL after successful payment
-- `expiresIn`: (optional) Expiration time in seconds
-
-##### getPayment
-
-```typescript
-getPayment(paymentId: string): Promise<PaymentResponse>
-```
-
-Get payment status by ID.
-
-##### waitForPayment
-
-```typescript
-waitForPayment(paymentId: string, timeoutMs?: number): Promise<PaymentResponse>
-```
-
-Wait for payment to complete or expire.
 
 ## Development
 
