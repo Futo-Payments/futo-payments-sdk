@@ -41,6 +41,8 @@ export function TonPaymentsProvider({
 }: TonPaymentsProviderProps) {
     const [tonConnect, setTonConnect] = useState<TonConnectUI | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
+    const [initError, setInitError] = useState<string | null>(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -53,13 +55,21 @@ export function TonPaymentsProvider({
                     manifestUrl: connectorParams?.manifestUrl
                 });
 
+                await instance.connectionRestored;
+
                 if (isMounted) {
                     setTonConnect(instance);
                     const wallets = await instance.getWallets();
                     setIsConnected(!!wallets.length);
+                    setIsInitialized(true);
+                    setInitError(null);
                 }
             } catch (error) {
                 console.error('Failed to initialize TonConnect:', error);
+                if (isMounted) {
+                    setInitError(error instanceof Error ? error.message : 'Failed to initialize TonConnect');
+                    setIsInitialized(false);
+                }
             }
         };
 
@@ -76,6 +86,14 @@ export function TonPaymentsProvider({
             }
         };
     }, [connectorParams]);
+
+    if (!isInitialized && !initError) {
+        return <div>Initializing TON Connect...</div>;
+    }
+
+    if (initError) {
+        return <div>Failed to initialize TON Connect: {initError}</div>;
+    }
 
     const initiatePayment = useCallback(async (amount: BigNumberish) => {
         try {
