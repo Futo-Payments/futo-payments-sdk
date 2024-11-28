@@ -48,10 +48,10 @@ export function TonPaymentsProvider({
         if (!tonConnect) {
             throw new Error('TonConnect not initialized');
         }
-
         try {
-            await tonConnect.connectWallet();
-            setIsConnected(true);
+            await tonConnect.openModal();
+            const wallets = await tonConnect.getWallets();
+            setIsConnected(!!wallets.length);
         } catch (error) {
             console.error('Wallet connection failed:', error);
             throw error;
