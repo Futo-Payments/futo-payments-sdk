@@ -1,0 +1,26 @@
+{
+    "name": "ton-payments-example",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "dependencies": {
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "@tonconnect/ui": "^2.0.9",
+        "ton": "^13.9.0",
+        "futo-payments-client": "file:../.."
+    },
+    "devDependencies": {
+        "@types/react": "^18.2.0",
+        "@types/react-dom": "^18.2.0",
+        "@types/node": "^18.0.0",
+        "typescript": "^5.0.0",
+        "vite": "^4.5.0",
+        "@vitejs/plugin-react": "^4.0.0"
+    },
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc && vite build",
+        "preview": "vite preview"
+    }
+}
