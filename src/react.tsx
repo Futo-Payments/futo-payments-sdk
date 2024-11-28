@@ -185,20 +185,6 @@ export function TonPaymentsProvider({
         };
     }, [connectorParams]);
 
-    if (!isInitialized && !initError) {
-        return (
-            <TonPaymentsContext.Provider value={{
-                initiatePayment,
-                connectWallet,
-                sendTransaction,
-                isConnected,
-                disconnect
-            }}>
-                <div>Initializing TON Connect...</div>
-            </TonPaymentsContext.Provider>
-        );
-    }
-
     if (initError) {
         return (
             <TonPaymentsContext.Provider value={{
