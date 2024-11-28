@@ -1,6 +1,6 @@
 {
   "name": "futo-payments-client",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "description": "Client library for Futo Payments integration",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
