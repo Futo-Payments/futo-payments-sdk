@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
+import { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { TonConnectUI, TonConnectUiOptions, UIWallet } from '@tonconnect/ui';
 import { toNano } from 'ton';
@@ -18,14 +18,11 @@ export interface TonPaymentsContextType {
 
 export const TonPaymentsContext = createContext<TonPaymentsContextType | undefined>(undefined);
 
-const API_URL =
-    process.env.NEXT_PUBLIC_TON_PAYMENTS_API_URL ||
-    process.env.REACT_APP_TON_PAYMENTS_API_URL ||
-    (typeof process !== 'undefined' && process.env.VITE_TON_PAYMENTS_API_URL) ||
-    (typeof window !== 'undefined' ? (window as any)?.__VITE_TON_PAYMENTS_API_URL : undefined);
-
 export interface TonPaymentsProviderProps {
-    apiKey: string;
+    config: {
+        apiKey: string;
+        apiURL: string;
+    };
     children: ReactNode;
     connectorParams?: {
         manifestUrl?: string;
@@ -39,7 +36,7 @@ export interface TonPaymentsProviderProps {
 
 export function TonPaymentsProvider({
     children,
-    apiKey,
+    config,
     connectorParams
 }: TonPaymentsProviderProps) {
     const [tonConnect, setTonConnect] = useState<TonConnectUI | null>(null);
@@ -61,11 +58,11 @@ export function TonPaymentsProvider({
 
     const initiatePayment = useCallback(async (amount: BigNumberish) => {
         try {
-            const response = await fetch(`${API_URL}v1/create_payment`, {
+            const response = await fetch(`${config.apiURL}v1/create_payment`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
+                    'Authorization': `Bearer ${config.apiKey}`
                 },
                 body: JSON.stringify({
                     amount: amount
@@ -84,7 +81,7 @@ export function TonPaymentsProvider({
             console.error('Payment initiation failed:', error);
             throw error;
         }
-    }, [apiKey]);
+    }, [config]);
 
     const connectWallet = useCallback(async () => {
         if (!tonConnect) {

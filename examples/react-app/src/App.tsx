@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TonPaymentsProvider, useTonPayments } from 'futo-payments-client';
+import { TonPaymentsProvider, useTonPayments } from 'futo-payments-sdk';
 import type { Theme, UIWallet } from '@tonconnect/ui';
 
 function PaymentDemo() {
