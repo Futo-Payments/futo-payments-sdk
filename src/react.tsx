@@ -23,11 +23,7 @@ export interface TonPaymentsContextType {
     /** Disconnects the current wallet */
     disconnect: () => void;
     /** Gets payment details by ID */
-    getPayment: (paymentId: string) => Promise<{
-        address: string;
-        amount: string;
-        status: string;
-    }>;
+    getPayment: (paymentId: string) => Promise<PaymentResponse>;
 }
 
 export const TonPaymentsContext = createContext<TonPaymentsContextType | undefined>(undefined);
@@ -131,7 +127,7 @@ export function TonPaymentsProvider({
      * @returns Object containing the payment details
      * @throws Error if the API request fails
      */
-    const getPayment = useCallback(async (paymentId: string) => {
+    const getPayment = useCallback(async (paymentId: string): Promise<PaymentResponse> => {
         try {
             const response = await fetch(`${config.apiURL}v1/check_payment`, {
                 method: 'POST',
