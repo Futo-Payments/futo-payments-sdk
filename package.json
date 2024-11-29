@@ -1,6 +1,6 @@
 {
   "name": "futo-payments-sdk",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "Client library for Futo Payments integration",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",

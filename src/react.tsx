@@ -4,26 +4,40 @@ import { TonConnectUI, TonConnectUiOptions, UIWallet } from '@tonconnect/ui';
 import { toNano } from 'ton';
 import { BigNumberish } from 'ethers';
 
+/**
+ * Interface for the TON payments context that provides payment and wallet functionality
+ */
 export interface TonPaymentsContextType {
+    /** Initiates a payment and returns a payment ID */
     initiatePayment: (amount: BigNumberish) => Promise<{ payment_id: string }>;
+    /** Connects to a TON wallet */
     connectWallet: () => Promise<void>;
+    /** Sends a transaction to the specified address */
     sendTransaction: (params: {
         to: string;
         amount: BigNumberish;
-        message: string;
+        payment_id?: string;
     }) => Promise<{ txHash: string }>;
+    /** Indicates if wallet is connected */
     isConnected: boolean;
+    /** Disconnects the current wallet */
     disconnect: () => void;
 }
 
 export const TonPaymentsContext = createContext<TonPaymentsContextType | undefined>(undefined);
 
+/**
+ * Props for the TonPaymentsProvider component
+ */
 export interface TonPaymentsProviderProps {
+    /** Configuration object containing API credentials */
     config: {
         apiKey: string;
         apiURL: string;
     };
+    /** React children components */
     children: ReactNode;
+    /** Optional connector parameters for customizing wallet connection */
     connectorParams?: {
         manifestUrl?: string;
         uiPreferences?: TonConnectUiOptions['uiPreferences'];
@@ -34,6 +48,11 @@ export interface TonPaymentsProviderProps {
     };
 }
 
+/**
+ * Provider component that manages TON wallet connections and payment operations
+ * @param props - The provider props
+ * @returns A context provider wrapper component
+ */
 export function TonPaymentsProvider({
     children,
     config,
@@ -44,6 +63,10 @@ export function TonPaymentsProvider({
     const [isInitialized, setIsInitialized] = useState(false);
     const [initError, setInitError] = useState<string | null>(null);
 
+    /**
+     * Connects to a TON wallet by opening the wallet selection modal
+     * @throws Error if TonConnect is not initialized
+     */
     const connectWallet = useCallback(async () => {
         if (!tonConnect) {
             throw new Error('TonConnect not initialized');
@@ -59,14 +82,16 @@ export function TonPaymentsProvider({
         }
     }, [tonConnect]);
 
+    /**
+     * Initiates a payment by creating a payment record on the server
+     * @param amount - The amount to be paid
+     * @returns Object containing the payment ID
+     * @throws Error if TonConnect is not initialized or if the API request fails
+     */
     const initiatePayment = useCallback(async (amount: BigNumberish) => {
         try {
             if (!tonConnect) {
-                throw new Error('TonConnect not initialized');
-            }
-
-            if (!isConnected) {
-                await connectWallet();
+                throw new Error('InitPayment: TonConnect not initialized');
             }
 
             const response = await fetch(`${config.apiURL}v1/create_payment`, {
@@ -80,6 +105,8 @@ export function TonPaymentsProvider({
                 }),
             });
 
+            console.log('response', response);
+
             if (!response.ok) {
                 throw new Error('Failed to initiate payment');
             }
@@ -92,20 +119,34 @@ export function TonPaymentsProvider({
             console.error('Payment initiation failed:', error);
             throw error;
         }
-    }, [config, tonConnect, isConnected, connectWallet]);
+    }, [config, tonConnect, isConnected]);
 
-    const sendTransaction = useCallback(async ({ to, amount, message }: {
+    /**
+     * Sends a transaction to the specified address
+     * @param params.to - Destination address
+     * @param params.amount - Amount to send
+     * @param params.payment_id - Optional payment ID (will be generated if not provided)
+     * @returns Object containing the transaction hash
+     * @throws Error if transaction fails or wallet is not connected
+     */
+    const sendTransaction = useCallback(async ({ to, amount, payment_id }: {
         to: string;
         amount: BigNumberish;
-        message: string;
+        payment_id?: string;
     }) => {
         try {
-            if (!tonConnect) {
-                throw new Error('TonConnect not initialized');
+            if (!isInitialized || !tonConnect) {
+                throw new Error('SendTX: TonConnect not initialized');
             }
 
             if (!isConnected) {
                 await connectWallet();
+            }
+
+            let transaction_payment_id = payment_id;
+            if (!transaction_payment_id) {
+                const result = await initiatePayment(amount);
+                transaction_payment_id = result.payment_id;
             }
 
             const transaction = {
@@ -114,7 +155,7 @@ export function TonPaymentsProvider({
                     {
                         address: to,
                         amount: toNano(amount).toString(),
-                        payload: message!!,
+                        payload: transaction_payment_id,
                     },
                 ],
             };
@@ -129,6 +170,9 @@ export function TonPaymentsProvider({
         }
     }, [tonConnect, isConnected, connectWallet]);
 
+    /**
+     * Disconnects the current wallet
+     */
     const disconnect = useCallback(() => {
         if (tonConnect) {
             tonConnect.disconnect();
@@ -156,20 +200,22 @@ export function TonPaymentsProvider({
                     throw new Error('Failed to initialize TonConnect instance');
                 }
 
-                await instance.connectionRestored;
+                // await instance.connectionRestored;
 
                 if (isMounted) {
                     setTonConnect(instance);
+                    setIsInitialized(true);
                     const wallets = await instance.getWallets();
                     setIsConnected(!!wallets.length);
-                    setIsInitialized(true);
                     setInitError(null);
+                } else {
+                    setIsInitialized(false);
                 }
             } catch (error) {
+                setIsInitialized(false);
                 console.error('Failed to initialize TonConnect:', error);
                 if (isMounted) {
                     setInitError(error instanceof Error ? error.message : 'Failed to initialize TonConnect');
-                    setIsInitialized(false);
                 }
             }
         };
@@ -202,6 +248,11 @@ export function TonPaymentsProvider({
     );
 }
 
+/**
+ * Hook to access TON payments functionality
+ * @returns The TON payments context containing wallet and payment methods
+ * @throws Error if used outside of TonPaymentsProvider
+ */
 export function useTonPayments() {
     const context = useContext(TonPaymentsContext);
     if (context === undefined) {

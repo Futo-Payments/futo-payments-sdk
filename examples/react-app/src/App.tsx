@@ -5,14 +5,13 @@ import type { Theme, UIWallet } from '@tonconnect/ui';
 function PaymentDemo() {
     const [amount, setAmount] = useState('1.0');
     const [recipientAddress, setRecipientAddress] = useState('');
-    const { sendTransaction, isConnected, connectWallet } = useTonPayments();
+    const { sendTransaction, isConnected } = useTonPayments();
 
     const handleSendPayment = async () => {
         try {
             await sendTransaction({
                 to: recipientAddress,
-                amount: parseFloat(amount),
-                message: 'Test payment'
+                amount: parseFloat(amount)
             });
             alert('Payment sent successfully!');
         } catch (error: unknown) {
@@ -21,19 +20,17 @@ function PaymentDemo() {
                     alert('Transaction was cancelled by user');
                 } else if (error.message.includes('Connect wallet')) {
                     try {
-                        await connectWallet();
                         // Retry the transaction after connecting
                         await sendTransaction({
                             to: recipientAddress,
-                            amount: parseFloat(amount),
-                            message: 'Test payment'
+                            amount: parseFloat(amount)
                         });
                         alert('Payment sent successfully!');
                     } catch (retryError) {
-                        alert(`Payment failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`);
+                        alert(`Payment failed 1: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`);
                     }
                 } else {
-                    alert(`Payment failed: ${error.message}`);
+                    alert(`Payment failed 2: ${error.message}`);
                 }
             } else {
                 alert('Payment failed: Unknown error occurred');
