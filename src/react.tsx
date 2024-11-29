@@ -136,11 +136,14 @@ export function TonPaymentsProvider({
      */
     const getPayment = useCallback(async (paymentId: string) => {
         try {
-            const response = await fetch(`${config.apiURL}v1/check_payment/${paymentId}`, {
-                method: 'GET',
+            const response = await fetch(`${config.apiURL}v1/check_payment`, {
+                method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${config.apiKey}`
-                }
+                },
+                body: JSON.stringify({
+                    payment_id: paymentId
+                }),
             });
 
             if (!response.ok) {
@@ -180,6 +183,9 @@ export function TonPaymentsProvider({
 
             // Get payment details to get the destination address
             const paymentDetails = await getPayment(transaction_payment_id);
+
+
+            alert("AMOUNT: " + toNano(amount).toString());
 
             const transaction = {
                 validUntil: Math.floor(Date.now() / 1000) + 600,
