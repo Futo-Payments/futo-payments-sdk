@@ -44,14 +44,13 @@ import { TonPaymentsProvider } from 'ton-payments';
 function App() {
   return (
     <TonPaymentsProvider
-      apiKey={import.meta.env.VITE_TON_PAYMENTS_API_KEY}
-      connectorParams={{
-        manifestUrl: 'https://your-app-url.com/tonconnect-manifest.json',
-        uiPreferences: { theme: 'SYSTEM' },
-        walletsListConfiguration: {
-          includeWallets: ['tonkeeper', 'tonhub']
-        }
-      }}
+        config={{
+            apiKey: import.meta.env.VITE_TON_PAYMENTS_API_KEY,
+            apiURL: import.meta.env.VITE_TON_PAYMENTS_API_URL
+        }}
+        connectorParams={{
+            manifestUrl: 'http://localhost:3000/tonconnect-manifest.json',
+        }}
     >
       <YourApp />
     </TonPaymentsProvider>
@@ -75,9 +74,8 @@ function PaymentComponent() {
   const handleSendPayment = async () => {
     try {
       await sendTransaction({
-        to: recipientAddress,
-        amount: parseFloat(amount),
-        message: 'Test payment'
+          to: recipientAddress,
+          amount: parseFloat(amount)
       });
       alert('Payment sent successfully!');
     } catch (error) {
@@ -133,17 +131,22 @@ function PaymentComponent() {
 
 ```typescript
 interface TonPaymentsProviderProps {
-  apiKey: string;
-  connectorParams: {
-    manifestUrl: string;
-    uiPreferences?: {
-      theme: 'LIGHT' | 'DARK' | 'SYSTEM';
+    /** Configuration object containing API credentials */
+    config: {
+        apiKey: string;
+        apiURL: string;
     };
-    walletsListConfiguration?: {
-      includeWallets?: string[];
+    /** React children components */
+    children: ReactNode;
+    /** Optional connector parameters for customizing wallet connection */
+    connectorParams?: {
+        manifestUrl?: string;
+        uiPreferences?: TonConnectUiOptions['uiPreferences'];
+        walletsListConfiguration?: {
+            includeWallets?: UIWallet[];
+            excludeWallets?: UIWallet[];
+        };
     };
-  };
-  children: React.ReactNode;
 }
 ```
 
@@ -157,11 +160,53 @@ The `useTonPayments` hook provides the following methods:
 - `isConnected: boolean` - Current wallet connection status
 
 ```typescript
-interface TransactionParams {
-  to: string;
-  amount: number;
-  message?: string;
+interface PaymentRequest {
+    /** Amount in TON */
+    amount: string;
+    /** Optional payment ID */
+    payment_id?: string;
+    /** Optional expiration time in seconds */
+    expiresIn?: number;
 }
+```
+
+### Return types
+
+```typescript
+interface PaymentResponse {
+    /** HTTP status code */
+    status: number;
+    /** Response message */
+    message: string;
+    /** Response payload */
+    payload: {
+        /** Amount in USD */
+        amount_in_usd: string;
+        /** Amounts in different cryptocurrencies */
+        amount_in_crypto: {
+            ton: string | null;
+            btc: string | null;
+            eth: string | null;
+            bnb: string | null;
+        };
+        /** Merchant name */
+        merchant: string;
+        /** Chain ID */
+        chain_id: number;
+        /** Payment status */
+        current_status: PaymentStatus;
+        /** Expiration timestamp */
+        expires: string;
+    }
+}
+
+export enum PaymentStatus {
+    CREATED = 'CREATED',
+    PENDING = 'PENDING',
+    COMPLETED = 'COMPLETED',
+    EXPIRED = 'EXPIRED',
+    FAILED = 'FAILED'
+} 
 ```
 
 ## Development
