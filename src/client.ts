@@ -50,9 +50,9 @@ export class PaymentClient {
         while (Date.now() - startTime < timeoutMs) {
             const payment = await this.getPayment(paymentId);
 
-            if (payment.current_status === PaymentStatus.COMPLETED ||
-                payment.current_status === PaymentStatus.FAILED ||
-                payment.current_status === PaymentStatus.EXPIRED) {
+            if (payment.payload.current_status === PaymentStatus.COMPLETED ||
+                payment.payload.current_status === PaymentStatus.FAILED ||
+                payment.payload.current_status === PaymentStatus.EXPIRED) {
                 return payment;
             }
 

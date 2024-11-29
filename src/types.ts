@@ -17,23 +17,30 @@ export interface PaymentRequest {
 }
 
 export interface PaymentResponse {
-    /** Amount in USD */
-    amount_in_usd: string;
-    /** Amounts in different cryptocurrencies */
-    amount_in_crypto: {
-        ton: string | null;
-        btc: string | null;
-        eth: string | null;
-        bnb: string | null;
-    };
-    /** Merchant name */
-    merchant: string;
-    /** Chain ID */
-    chain_id: number;
-    /** Payment status */
-    current_status: PaymentStatus;
-    /** Expiration timestamp */
-    expires: string;
+    /** HTTP status code */
+    status: number;
+    /** Response message */
+    message: string;
+    /** Response payload */
+    payload: {
+        /** Amount in USD */
+        amount_in_usd: string;
+        /** Amounts in different cryptocurrencies */
+        amount_in_crypto: {
+            ton: string | null;
+            btc: string | null;
+            eth: string | null;
+            bnb: string | null;
+        };
+        /** Merchant name */
+        merchant: string;
+        /** Chain ID */
+        chain_id: number;
+        /** Payment status */
+        current_status: PaymentStatus;
+        /** Expiration timestamp */
+        expires: string;
+    }
 }
 
 export enum PaymentStatus {
