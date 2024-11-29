@@ -22,6 +22,12 @@ export interface TonPaymentsContextType {
     isConnected: boolean;
     /** Disconnects the current wallet */
     disconnect: () => void;
+    /** Gets payment details by ID */
+    getPayment: (paymentId: string) => Promise<{
+        address: string;
+        amount: string;
+        status: string;
+    }>;
 }
 
 export const TonPaymentsContext = createContext<TonPaymentsContextType | undefined>(undefined);
@@ -121,6 +127,33 @@ export function TonPaymentsProvider({
         }
     }, [config, tonConnect, isConnected]);
 
+
+    /**
+     * Gets payment details by ID
+     * @param paymentId - The ID of the payment
+     * @returns Object containing the payment details
+     * @throws Error if the API request fails
+     */
+    const getPayment = useCallback(async (paymentId: string) => {
+        try {
+            const response = await fetch(`${config.apiURL}v1/check_payment/${paymentId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${config.apiKey}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to get payment details');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Failed to get payment details:', error);
+            throw error;
+        }
+    }, [config]);
+
     /**
      * Sends a transaction to the specified address
      * @param params.to - Destination address
@@ -129,8 +162,7 @@ export function TonPaymentsProvider({
      * @returns Object containing the transaction hash
      * @throws Error if transaction fails or wallet is not connected
      */
-    const sendTransaction = useCallback(async ({ to, amount, payment_id }: {
-        to: string;
+    const sendTransaction = useCallback(async ({ amount, payment_id }: {
         amount: BigNumberish;
         payment_id?: string;
     }) => {
@@ -143,17 +175,17 @@ export function TonPaymentsProvider({
                 await connectWallet();
             }
 
-            let transaction_payment_id = payment_id;
-            if (!transaction_payment_id) {
-                const result = await initiatePayment(amount);
-                transaction_payment_id = result.payment_id;
-            }
+            // Create payment if payment_id is not provided
+            const transaction_payment_id = payment_id ?? (await initiatePayment(amount)).payment_id;
+
+            // Get payment details to get the destination address
+            const paymentDetails = await getPayment(transaction_payment_id);
 
             const transaction = {
                 validUntil: Math.floor(Date.now() / 1000) + 600,
                 messages: [
                     {
-                        address: to,
+                        address: paymentDetails.address,
                         amount: toNano(amount).toString(),
                         payload: transaction_payment_id,
                     },
@@ -168,7 +200,7 @@ export function TonPaymentsProvider({
             console.error('Transaction failed:', error);
             throw error;
         }
-    }, [tonConnect, isConnected, connectWallet]);
+    }, [tonConnect, isConnected, connectWallet, initiatePayment, getPayment]);
 
     /**
      * Disconnects the current wallet
@@ -241,7 +273,8 @@ export function TonPaymentsProvider({
             connectWallet,
             sendTransaction,
             isConnected,
-            disconnect
+            disconnect,
+            getPayment
         }}>
             {children}
         </TonPaymentsContext.Provider>
