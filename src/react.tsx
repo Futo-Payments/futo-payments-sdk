@@ -1,15 +1,15 @@
 import { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { CHAIN, TonConnectUI, TonConnectUiOptions, UIWallet } from '@tonconnect/ui';
-import { toNano } from 'ton';
+import { Address, toNano } from 'ton';
 import { BigNumberish } from 'ethers';
-
+import { PaymentResponse } from './types';
 /**
  * Interface for the TON payments context that provides payment and wallet functionality
  */
 export interface TonPaymentsContextType {
-    /** Initiates a payment and returns a payment ID */
-    initiatePayment: (amount: BigNumberish) => Promise<{ payment_id: string }>;
+    /** Initiates a payment and returns payment details */
+    initiatePayment: (amount: BigNumberish) => Promise<PaymentResponse>;
     /** Connects to a TON wallet */
     connectWallet: () => Promise<void>;
     /** Sends a transaction to the specified address */
@@ -94,7 +94,7 @@ export function TonPaymentsProvider({
      * @returns Object containing the payment ID
      * @throws Error if TonConnect is not initialized or if the API request fails
      */
-    const initiatePayment = useCallback(async (amount: BigNumberish) => {
+    const initiatePayment = useCallback(async (amount: BigNumberish): Promise<PaymentResponse> => {
         try {
             if (!tonConnect) {
                 throw new Error('InitPayment: TonConnect not initialized');
@@ -117,10 +117,7 @@ export function TonPaymentsProvider({
                 throw new Error('Failed to initiate payment');
             }
 
-            const data = await response.json();
-            return {
-                payment_id: data.payment_id
-            };
+            return (await response.json()).payload;
         } catch (error) {
             console.error('Payment initiation failed:', error);
             throw error;
@@ -150,7 +147,7 @@ export function TonPaymentsProvider({
                 throw new Error('Failed to get payment details');
             }
 
-            return await response.json();
+            return (await response.json()).payload;
         } catch (error) {
             console.error('Failed to get payment details:', error);
             throw error;
@@ -179,19 +176,25 @@ export function TonPaymentsProvider({
             }
 
             // Create payment if payment_id is not provided
-            const transaction_payment_id = payment_id ?? (await initiatePayment(amount)).payment_id;
+            let paymentDetails: PaymentResponse | null = null;
+            if (!payment_id) {
+                paymentDetails = await initiatePayment(amount);
+            } else {
+                paymentDetails = await getPayment(payment_id);
+            }
 
-            // Get payment details to get the destination address
-            const paymentDetails = await getPayment(transaction_payment_id);
+            if (!paymentDetails?.payload) {
+                throw new Error('Payment details not found');
+            }
 
             const transaction = {
                 validUntil: Math.floor(Date.now() / 1000) + 600,
                 network: CHAIN.MAINNET,
                 messages: [
                     {
-                        address: paymentDetails.address,
+                        address: paymentDetails.payload.deposit_addresses.ton || "",
                         amount: toNano(amount).toString(),
-                        payload: transaction_payment_id,
+                        payload: paymentDetails.payload.payment_id,
                     },
                 ],
             };

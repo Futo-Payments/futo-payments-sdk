@@ -23,10 +23,17 @@ export interface PaymentResponse {
     message: string;
     /** Response payload */
     payload: {
+        payment_id: string;
         /** Amount in USD */
         amount_in_usd: string;
         /** Amounts in different cryptocurrencies */
         amount_in_crypto: {
+            ton: string | null;
+            btc: string | null;
+            eth: string | null;
+            bnb: string | null;
+        };
+        deposit_addresses: {
             ton: string | null;
             btc: string | null;
             eth: string | null;
