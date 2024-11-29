@@ -1,10 +1,8 @@
-import { Address } from 'ton';
-
 export interface PaymentConfig {
     /** API endpoint for the payment service */
     apiEndpoint: string;
-    /** Default merchant address */
-    merchantAddress?: Address;
+    /** API key for the payment service */
+    apiKey: string;
     /** Optional timeout for API requests in milliseconds */
     timeout?: number;
 }
@@ -12,36 +10,36 @@ export interface PaymentConfig {
 export interface PaymentRequest {
     /** Amount in TON */
     amount: string;
-    /** Merchant's TON address */
-    merchantAddress: Address;
-    /** Optional comment for the payment */
-    comment?: string;
-    /** Optional callback URL after successful payment */
-    callbackUrl?: string;
+    /** Optional payment ID */
+    payment_id?: string;
     /** Optional expiration time in seconds */
     expiresIn?: number;
 }
 
 export interface PaymentResponse {
-    /** Unique payment ID */
-    paymentId: string;
-    /** Payment amount in TON */
-    amount: string;
-    /** Merchant's TON address */
-    merchantAddress: string;
+    /** Amount in USD */
+    amount_in_usd: string;
+    /** Amounts in different cryptocurrencies */
+    amount_in_crypto: {
+        ton: string | null;
+        btc: string | null;
+        eth: string | null;
+        bnb: string | null;
+    };
+    /** Merchant name */
+    merchant: string;
+    /** Chain ID */
+    chain_id: number;
     /** Payment status */
-    status: PaymentStatus;
-    /** Transaction hash if payment is completed */
-    txHash?: string;
-    /** Creation timestamp */
-    createdAt: number;
+    current_status: PaymentStatus;
     /** Expiration timestamp */
-    expiresAt: number;
+    expires: string;
 }
 
 export enum PaymentStatus {
-    PENDING = 'pending',
-    COMPLETED = 'completed',
-    EXPIRED = 'expired',
-    FAILED = 'failed'
+    CREATED = 'CREATED',
+    PENDING = 'PENDING',
+    COMPLETED = 'COMPLETED',
+    EXPIRED = 'EXPIRED',
+    FAILED = 'FAILED'
 } 

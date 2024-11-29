@@ -1,6 +1,6 @@
 import { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { TonConnectUI, TonConnectUiOptions, UIWallet } from '@tonconnect/ui';
+import { CHAIN, TonConnectUI, TonConnectUiOptions, UIWallet } from '@tonconnect/ui';
 import { toNano } from 'ton';
 import { BigNumberish } from 'ethers';
 
@@ -184,11 +184,9 @@ export function TonPaymentsProvider({
             // Get payment details to get the destination address
             const paymentDetails = await getPayment(transaction_payment_id);
 
-
-            alert("AMOUNT: " + toNano(amount).toString());
-
             const transaction = {
                 validUntil: Math.floor(Date.now() / 1000) + 600,
+                network: CHAIN.MAINNET,
                 messages: [
                     {
                         address: paymentDetails.address,

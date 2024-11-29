@@ -21,15 +21,13 @@ export class PaymentClient {
     /**
      * Create a new payment request
      */
-    async createPayment(request: Omit<PaymentRequest, 'merchantAddress'> & { merchantAddress?: Address }): Promise<PaymentResponse> {
-        const merchantAddress = request.merchantAddress || this.config.merchantAddress;
-        if (!merchantAddress) {
-            throw new Error('Merchant address is required');
-        }
-
+    async createPayment(request: Omit<PaymentRequest, 'amount'> & { amount: string }): Promise<PaymentResponse> {
         const response = await this.api.post<PaymentResponse>('v1/create_payment', {
-            ...request,
-            merchantAddress: merchantAddress.toString()
+            amount: request.amount
+        }, {
+            headers: {
+                'Authorization': `Bearer ${this.config.apiKey}`
+            }
         });
 
         return response.data;
@@ -52,9 +50,9 @@ export class PaymentClient {
         while (Date.now() - startTime < timeoutMs) {
             const payment = await this.getPayment(paymentId);
 
-            if (payment.status === PaymentStatus.COMPLETED ||
-                payment.status === PaymentStatus.FAILED ||
-                payment.status === PaymentStatus.EXPIRED) {
+            if (payment.current_status === PaymentStatus.COMPLETED ||
+                payment.current_status === PaymentStatus.FAILED ||
+                payment.current_status === PaymentStatus.EXPIRED) {
                 return payment;
             }
 
