@@ -162,7 +162,7 @@ export function TonPaymentsProvider({
                     setTonConnect(instance);
                     setIsInitialized(true);
                     const wallets = await instance.getWallets();
-                    setIsConnected(!!wallets.length);
+                    setIsConnected(wallets.length > 0);
                     setInitError(null);
                 } else {
                     setIsInitialized(false);
