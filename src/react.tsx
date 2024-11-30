@@ -1,9 +1,9 @@
 import { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { CHAIN, TonConnectUI, TonConnectUiOptions, UIWallet } from '@tonconnect/ui';
-import { Address, toNano } from 'ton';
+import { TonConnectUI, TonConnectUiOptions, UIWallet } from '@tonconnect/ui';
 import { BigNumberish } from 'ethers';
 import { PaymentResponse } from './types';
+import { TonPaymentsCore } from './core/ton-payments';
 /**
  * Interface for the TON payments context that provides payment and wallet functionality
  */
@@ -64,6 +64,10 @@ export function TonPaymentsProvider({
     const [isConnected, setIsConnected] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const [initError, setInitError] = useState<string | null>(null);
+    const [paymentsCore] = useState(() => new TonPaymentsCore({
+        apiURL: config.apiURL,
+        apiKey: config.apiKey
+    }));
 
     /**
      * Connects to a TON wallet by opening the wallet selection modal
@@ -76,7 +80,6 @@ export function TonPaymentsProvider({
         try {
             await tonConnect.openModal();
             const wallets = await tonConnect.getWallets();
-            console.log('wallets', wallets);
             setIsConnected(wallets.length > 0);
         } catch (error) {
             console.error('Wallet connection failed:', error);
@@ -95,30 +98,13 @@ export function TonPaymentsProvider({
             if (!tonConnect) {
                 throw new Error('InitPayment: TonConnect not initialized');
             }
-
-            const response = await fetch(`${config.apiURL}v1/create_payment`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${config.apiKey}`
-                },
-                body: JSON.stringify({
-                    amount: amount
-                }),
-            });
-
-            console.log('response', response);
-
-            if (!response.ok) {
-                throw new Error('Failed to initiate payment');
-            }
-
-            return (await response.json()).payload;
+            const { payment } = await paymentsCore.createPaymentWithTransaction({ amount });
+            return payment;
         } catch (error) {
             console.error('Payment initiation failed:', error);
             throw error;
         }
-    }, [config, tonConnect, isConnected]);
+    }, [tonConnect, paymentsCore]);
 
 
     /**
@@ -129,26 +115,12 @@ export function TonPaymentsProvider({
      */
     const getPayment = useCallback(async (paymentId: string): Promise<PaymentResponse> => {
         try {
-            const response = await fetch(`${config.apiURL}v1/check_payment`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${config.apiKey}`
-                },
-                body: JSON.stringify({
-                    payment_id: paymentId
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to get payment details');
-            }
-
-            return (await response.json()).payload;
+            return await paymentsCore.getPayment(paymentId);
         } catch (error) {
             console.error('Failed to get payment details:', error);
             throw error;
         }
-    }, [config]);
+    }, [paymentsCore]);
 
     /**
      * Sends a transaction to the specified address
@@ -171,29 +143,10 @@ export function TonPaymentsProvider({
                 await connectWallet();
             }
 
-            // Create payment if payment_id is not provided
-            let paymentDetails: PaymentResponse | null = null;
-            if (!payment_id) {
-                paymentDetails = await initiatePayment(amount);
-            } else {
-                paymentDetails = await getPayment(payment_id);
-            }
-
-            if (!paymentDetails?.payload) {
-                throw new Error('Payment details not found');
-            }
-
-            const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 600,
-                network: CHAIN.MAINNET,
-                messages: [
-                    {
-                        address: paymentDetails.payload.deposit_addresses.ton || "",
-                        amount: toNano(amount).toString(),
-                        payload: paymentDetails.payload.payment_id,
-                    },
-                ],
-            };
+            const { transaction } = await paymentsCore.createPaymentWithTransaction({
+                amount,
+                paymentId: payment_id
+            });
 
             const result = await tonConnect.sendTransaction(transaction);
             return {
@@ -203,7 +156,7 @@ export function TonPaymentsProvider({
             console.error('Transaction failed:', error);
             throw error;
         }
-    }, [tonConnect, isConnected, connectWallet, initiatePayment, getPayment]);
+    }, [tonConnect, isConnected, connectWallet, paymentsCore]);
 
     /**
      * Disconnects the current wallet

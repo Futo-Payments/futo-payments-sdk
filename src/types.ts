@@ -1,8 +1,7 @@
 export interface PaymentConfig {
     /** API endpoint for the payment service */
-    apiEndpoint: string;
-    /** API key for the payment service */
     apiKey: string;
+    apiURL: string;
     /** Optional timeout for API requests in milliseconds */
     timeout?: number;
 }
@@ -52,8 +51,6 @@ export interface PaymentResponse {
 
 export enum PaymentStatus {
     CREATED = 'CREATED',
-    PENDING = 'PENDING',
-    COMPLETED = 'COMPLETED',
-    EXPIRED = 'EXPIRED',
-    FAILED = 'FAILED'
+    PAID = 'PAID',
+    EXPIRED = 'EXPIRED'
 } 
